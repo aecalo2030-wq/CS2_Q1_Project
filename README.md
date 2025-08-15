@@ -1,5 +1,5 @@
 # Q1---Project-Proposal-Conceptualization----First-Draft
-
+ 
 # SalesTracker: Daily Sales Claculation
 
 ## Project Description
