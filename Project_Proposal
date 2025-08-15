@@ -1,1 +1,67 @@
+Project Proposal - First Draft
+Project Title
+SalesTracker: Daily Sales Calculation
+
+# Problem Statement: 
+Small retail shops often calculate their daily sales manually, leading to errors, lost records or
+difficulty in tracking trends over time. Without a simple automated system, owners might forger
+to record sales data, making it hard to compare current performance with past results.
+This project adresses the need for a simple, lightweight, secure and offline capable python tool that
+calculates daily sales, stores them in a local database, and allows quick access to previous days
+sales records and totals it weekly, monthly and yearly, all only after successful user authentication.
+
+# Project Objectives:
+
+1. Create a Python based program that calculates the total sales for a given day based on the users
+inputs.
+2. Store each day's sales record in a simple local data base.
+3. Require a username and password login before accessing sales data.
+4. Enable the user to view previous days sales when the program is run again.
+5. Maintain a simple, intuitive interface for quick daily use.
+6. Ensure data is stored persistently even after the program is closed.
+
+# Planned Features:
+User Login System - requires username and passwod to access the program.
+Daily Sales Entry - user inputs product sales or total revenue for the day
+Automatic Calculation - the program calculates total sales and saves them automatically.
+Previous Sales Retrieval - opetion to view the sales record from yesterday.
+Local Database Stortage - uses SQLite for simplicity and portability.
+Basic Report - displays total sales and date in a readable format
+
+# Planned inputs and outputs:
+
+Inputs:
+Username and password for authentication
+Daily sales figures (Can be entered as product prices or the total daily amount)
+Date (Optional but it refaults to system date
+Outputs:
+Login success/failure message
+Confirmation of daily sales saved
+Display of yesterdays sales amount and date upon request
+Notifies the user if no previous sales data exists
+
+Logic Plan:
+Start
+  Display "Welcome to SalesTracker"
+  Ask user: "Enter Username:"
+  Ask user: "Enter password:"
+  Check if credentials match stored data
+  If login fails: 
+    Display "Invalid credentials, access denied"
+    Exit
+  End if
+
+  Ask_User: "Enter today's total sales:"
+  Save todays sales with crurent date in the data base
+
+  Ask_User: "Do you want to view yesterdays sales? (Y/N)"
+  If yes:
+    Retrieve yesterdays sales 
+    If record exists
+      Display yesterdays sales 
+    Else:
+      Display "No data found for yesterday"
+  End If
+  Exit
+End
 
