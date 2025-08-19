@@ -1,0 +1,53 @@
+# Mini Store Inventory System V2.0.0
+
+#function for asking the user for the items and puts it in a dictionary
+def add_item():
+    name = input("Enter item name: ")
+    price = float(input(f"Enter price of {name}: ₱"))
+    stock = int(input(f"Enter stock for {name}: "))
+    return {"name": name, "price": price, "stock": stock, "sold": 0}
+
+#function in finding stock and items sold
+def sell_item(item):
+    quantity = int(input(f"How many {item['name']} were bought? "))
+    
+    if quantity > item["stock"]:
+        print(f"Not enough stock! Only {item['stock']} available.")
+        quantity = item["stock"]
+    
+    item["stock"] -= quantity
+    item["sold"] += quantity
+    total = quantity * item["price"]
+    return total
+
+#funtion for showing the report
+def show_report(inventory):
+    """Prints a report of sales and remaining stock"""
+    print("\n--- Sales Report ---")
+    total_sales = 0
+    for item in inventory:
+        sales = item["sold"] * item["price"]
+        total_sales += sales
+        print(f"\nItem: {item['name']}")
+        print(f"Price: ₱{item['price']:.2f}")
+        print(f"Sold: {item['sold']}")
+        print(f"Stock left: {item['stock']}")
+        print(f"Sales: ₱{sales:.2f}")
+    print(f"\nTOTAL SALES: ₱{total_sales:.2f}")
+
+def main():
+    inventory = []
+    # Step 1: adding items
+    num_items = int(input("How many different items are you selling? "))
+    for _ in range(num_items):
+        inventory.append(add_item())
+
+    # Step 2: Process sales
+    for item in inventory:
+        sell_item(item)
+
+    # Step 3: Shows the Final report
+    show_report(inventory)
+
+# Run program
+main()
