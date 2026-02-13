@@ -1,53 +1,138 @@
-# Mini Store Inventory System V2.0.0
+#UPDATED CODE V4.0.0
+import json
+import os
 
-#function for asking the user for the items and puts it in a dictionary
-def add_item():
-    name = input("Enter item name: ")
-    price = float(input(f"Enter price of {name}: ₱"))
-    stock = int(input(f"Enter stock for {name}: "))
-    return {"name": name, "price": price, "stock": stock, "sold": 0}
+# --- FILE HANDLING FEATURES ---
+FILE_NAME = "inventory.json"
 
-#function in finding stock and items sold
-def sell_item(item):
-    quantity = int(input(f"How many {item['name']} were bought? "))
-    
-    if quantity > item["stock"]:
-        print(f"Not enough stock! Only {item['stock']} available.")
-        quantity = item["stock"]
-    
-    item["stock"] -= quantity
-    item["sold"] += quantity
-    total = quantity * item["price"]
-    return total
+def save_data(inventory):
+    """Feature 1: Save inventory to a JSON file"""
+    with open(FILE_NAME, "w") as f:
+        json.dump(inventory, f, indent=4)
 
-#funtion for showing the report
+def load_data():
+    """Feature 1: Load inventory from file on startup"""
+    if os.path.exists(FILE_NAME):
+        with open(FILE_NAME, "r") as f:
+            return json.load(f)
+    return []
+
+# --- HELPER FUNCTIONS ---
+def get_valid_num(prompt, num_type=int):
+    while True:
+        try:
+            val = num_type(input(prompt))
+            if val < 0:
+                print("Value cannot be negative.")
+                continue
+            return val
+        except ValueError:
+            print(f"Invalid input. Please enter a valid {num_type.__name__}.")
+
+# --- CORE SYSTEM FEATURES ---
+def add_item(inventory):
+    name = input("\nEnter item name: ").strip().capitalize()
+    # Check if item already exists
+    for item in inventory:
+        if item["name"] == name:
+            print(f"Item '{name}' already exists! Use the Restock option instead.")
+            return
+            
+    price = get_valid_num(f"Enter price of {name}: ₱", float)
+    stock = get_valid_num(f"Enter starting stock: ", int)
+    inventory.append({"name": name, "price": price, "stock": stock, "sold": 0})
+    save_data(inventory)
+    print(f" {name} added successfully!")
+
+def restock_item(inventory):
+    """Feature 2: Add stock to existing items"""
+    name = input("\nWhich item are you restocking? ").strip().capitalize()
+    for item in inventory:
+        if item["name"] == name:
+            amount = get_valid_num(f"How many units of {name} are you adding? ", int)
+            item["stock"] += amount
+            save_data(inventory)
+            print(f" Stock updated. New total: {item['stock']}")
+            return
+    print(" Item not found.")
+
+def delete_item(inventory):
+    """Feature 3: Remove an item from the system"""
+    name = input("\nEnter item name to DELETE: ").strip().capitalize()
+    for i, item in enumerate(inventory):
+        if item["name"] == name:
+            confirm = input(f"Are you sure you want to delete {name}? (y/n): ").lower()
+            if confirm == 'y':
+                inventory.pop(i)
+                save_data(inventory)
+                print(f" {name} removed from system.")
+                return
+    print(" Item not found.")
+
+def sell_item(inventory):
+    search_name = input("\nItem being sold: ").strip().capitalize()
+    for item in inventory:
+        if item["name"] == search_name:
+            if item["stock"] <= 0:
+                print(" Out of stock!")
+                return
+                
+            quantity = get_valid_num(f"Quantity (Available: {item['stock']}): ", int)
+            if quantity > item["stock"]:
+                print(f" Not enough stock! Selling remaining {item['stock']} units.")
+                quantity = item["stock"]
+            
+            item["stock"] -= quantity
+            item["sold"] += quantity
+            save_data(inventory)
+            print(f"Sale recorded: ₱{(quantity * item['price']):.2f}")
+            return
+    print(" Item not found.")
+
 def show_report(inventory):
-    """Prints a report of sales and remaining stock"""
-    print("\n--- Sales Report ---")
-    total_sales = 0
+    """Feature 5: Formatted Report"""
+    if not inventory:
+        print("\n[ Inventory is empty ]")
+        return
+
+    print("\n" + "="*65)
+    print(f"{'ITEM NAME':<15} | {'PRICE':<10} | {'SOLD':<6} | {'STOCK':<8} | {'SALES':<10}")
+    print("-" * 65)
+    
+    total_revenue = 0
     for item in inventory:
         sales = item["sold"] * item["price"]
-        total_sales += sales
-        print(f"\nItem: {item['name']}")
-        print(f"Price: ₱{item['price']:.2f}")
-        print(f"Sold: {item['sold']}")
-        print(f"Stock left: {item['stock']}")
-        print(f"Sales: ₱{sales:.2f}")
-    print(f"\nTOTAL SALES: ₱{total_sales:.2f}")
+        total_revenue += sales
+        status = "!" if item["stock"] <= 5 else " "
+        print(f"{item['name']:<15} | ₱{item['price']:<9.2f} | {item['sold']:<6} | {item['stock']:<8}{status} | ₱{sales:<10.2f}")
 
+    print("-" * 65)
+    print(f"GRAND TOTAL REVENUE: ₱{total_revenue:.2f}")
+    print("(=) Note: Items marked with '!' are low on stock.")
+    print("="*65)
+
+# --- MAIN ENGINE ---
 def main():
-    inventory = []
-    # Step 1: adding items
-    num_items = int(input("How many different items are you selling? "))
-    for _ in range(num_items):
-        inventory.append(add_item())
+    inventory = load_data()
+    
+    while True:
+        print("\n--- MINI STORE V3.0 ---")
+        print("1. Record Sale      4. Restock Item")
+        print("2. View Report      5. Delete Item")
+        print("3. Add New Item     6. Exit")
+        
+        choice = input("\nSelect Option: ")
+        
+        if choice == '1': sell_item(inventory)
+        elif choice == '2': show_report(inventory)
+        elif choice == '3': add_item(inventory)
+        elif choice == '4': restock_item(inventory)
+        elif choice == '5': delete_item(inventory)
+        elif choice == '6':
+            print("System offline. Have a great day!")
+            break
+        else:
+            print("Invalid input.")
 
-    # Step 2: Process sales
-    for item in inventory:
-        sell_item(item)
-
-    # Step 3: Shows the Final report
-    show_report(inventory)
-
-# Run program
-main()
+if __name__ == "__main__":
+    main()
