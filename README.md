@@ -23,17 +23,18 @@ The program allows users to input product names, prices, stock quantities, and t
 3. Clone or download this repository.  
 4. Open the program file (`sales_tracker.py`) in VS Code or your IDE of choice.  
 5. Run the program:
-   - In Codespaces: click **Run ▶** or use the terminal with  
+   - In Codespaces: click **Run** or use the terminal with  
      ```bash
      python sales_tracker.py
      ```
    - In IDE's: Copy the code and click **Run** to activate the code
-5: How to use:
+
+6: How to use:
    - Add items: Use option 3 to add items to your store with products and       prices.
    - Record Sales: Use option 1 to subract stock and increase sold counts,       this also counts the money earned.
    - Restock: Use option 4 to add more units/stocks to an existing item.
    - View Report: Use option 2 to see your total earnings and current            inventory status.
-6. File Structure:
+7. File Structure:
    - main.py: This is the core of the program
    - inventory.json: This is where the files of your items are saved
 ### Note: If you close the program in some IDE's, it does not save the files as it has no external database to save it to.
