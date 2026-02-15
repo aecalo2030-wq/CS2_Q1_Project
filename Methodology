@@ -1,1 +1,19 @@
-
+METHODOLOGY
+  1. How The Core Features Were implemented
+    - Saving Data: The program uses a notebook file (inventory.json) where everytime you add or sell something, the program writes it down and saves it so it is not forgotten.
+    - Searching: The program does not care about how words are capitalized, where it was "Coke" or "coke", the program cleans the text and searches the right item so that it ensures that user typos does not result in "Item not found" errors.
+    - The Menu: A while loop keeps the program open and creates a cyle where the user can switch between selling, restocking, and viewing reports without closing the program after doing a single task.
+  2. Technologies Used:
+    - Python V3.7: The main language used to write the instructions and the entire code of the program, this was chosen for its simple and easy way to write code.
+    - JSON: A text based format to store data. This was chosen because it can be opened easily, can store data easily and is already built in to Python V3.7.
+  3. Backend to Frontend Communication:
+    - The screen (frontend): this is the terminal where you can text and type your choices:
+    - The logic (backend): This is the Python code that does the math and managed the file.
+    - How they talk: they record a sale on the screen, the logic calculates the stock and updates the inventory.json file.
+  4. Key design decisions or trade-offs:
+    - Real time saving: You can choose to save data after every single action.
+      :Trade-off: It ensures that you never loose data if the IDE closes or the power goes out.
+  5. Ethical Considerations:
+    - User Privacy: All data is kepy strictly on your local device. No information is send to a server or the cloud.
+    - Honesty: The system prevents the selling of items that are not on stock which keeps business records accurate and honest.
+    - Accessibiity: By using a simple menu the program is easy to navigate for those using screen readers, phones ot other devices.
