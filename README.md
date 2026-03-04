@@ -16,6 +16,10 @@ The program allows users to input product names, prices, stock quantities, and t
 - Low Stock Alerts: Automatically flags any item with 5 or fewer units remaining.
 - Input Validation: Prevents the program from crashing if a user enters invalid text or negative numbers.
 - Detailed Reporting: Displays a formatted table showing prices, units sold, stock levels, and total revenue.
+- Identifies which product is most popular within customers.
+- Sorts the product into its respective category.
+- Displays the time stamp of when the customer bought the product.
+- Allows you to undo what you inputted in case of errors.
 
 ## How to Run the Program
 1. Install Python (version 3.7 or later recommended).
