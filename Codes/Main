@@ -1,23 +1,26 @@
-#UPDATED CODE V4.0.0
+```python
+# UPDATED CODE V4.1.1
 import json
 import os
+from datetime import datetime
 
 # --- FILE HANDLING FEATURES ---
 FILE_NAME = "inventory.json"
 
 def save_data(inventory):
-    """Feature 1: Save inventory to a JSON file"""
+    """Save inventory to a JSON file"""
     with open(FILE_NAME, "w") as f:
         json.dump(inventory, f, indent=4)
 
 def load_data():
-    """Feature 1: Load inventory from file on startup"""
+    """Load inventory from file on startup"""
     if os.path.exists(FILE_NAME):
         with open(FILE_NAME, "r") as f:
             return json.load(f)
     return []
 
 # --- HELPER FUNCTIONS ---
+
 def get_valid_num(prompt, num_type=int):
     while True:
         try:
@@ -29,110 +32,179 @@ def get_valid_num(prompt, num_type=int):
         except ValueError:
             print(f"Invalid input. Please enter a valid {num_type.__name__}.")
 
+def choose_category(inventory):
+    """Allow user to choose an existing category or add a new one"""
+
+    categories = sorted(set(item["category"] for item in inventory))
+
+    if categories:
+        print("\nAvailable Categories:")
+        for i, cat in enumerate(categories, 1):
+            print(f"{i}. {cat}")
+    else:
+        print("\nNo categories yet.")
+
+    print("0. Add New Category")
+
+    choice = input("Choose category number: ")
+
+    if choice == "0":
+        new_cat = input("Enter new category name: ").strip().capitalize()
+        return new_cat
+
+    try:
+        choice = int(choice)
+        return categories[choice - 1]
+    except:
+        print("Invalid choice. Creating new category.")
+        return input("Enter new category name: ").strip().capitalize()
+
 # --- CORE SYSTEM FEATURES ---
+
 def add_item(inventory):
     name = input("\nEnter item name: ").strip().capitalize()
-    # Check if item already exists
+
     for item in inventory:
         if item["name"] == name:
             print(f"Item '{name}' already exists! Use the Restock option instead.")
             return
-            
+
+    category = choose_category(inventory)
     price = get_valid_num(f"Enter price of {name}: ₱", float)
-    stock = get_valid_num(f"Enter starting stock: ", int)
-    inventory.append({"name": name, "price": price, "stock": stock, "sold": 0})
+    stock = get_valid_num("Enter starting stock: ", int)
+
+    inventory.append({
+        "name": name,
+        "category": category,
+        "price": price,
+        "stock": stock,
+        "sold": 0,
+        "last_sale": "Never"
+    })
+
     save_data(inventory)
-    print(f" {name} added successfully!")
+    print(f"{name} added successfully!")
 
 def restock_item(inventory):
-    """Feature 2: Add stock to existing items"""
+    """Add stock to existing items"""
     name = input("\nWhich item are you restocking? ").strip().capitalize()
+
     for item in inventory:
         if item["name"] == name:
             amount = get_valid_num(f"How many units of {name} are you adding? ", int)
             item["stock"] += amount
             save_data(inventory)
-            print(f" Stock updated. New total: {item['stock']}")
+            print(f"Stock updated. New total: {item['stock']}")
             return
-    print(" Item not found.")
+
+    print("Item not found.")
 
 def delete_item(inventory):
-    """Feature 3: Remove an item from the system"""
+    """Remove an item from the system"""
     name = input("\nEnter item name to DELETE: ").strip().capitalize()
+
     for i, item in enumerate(inventory):
         if item["name"] == name:
             confirm = input(f"Are you sure you want to delete {name}? (y/n): ").lower()
+
             if confirm == 'y':
                 inventory.pop(i)
                 save_data(inventory)
-                print(f" {name} removed from system.")
+                print(f"{name} removed from system.")
                 return
-    print(" Item not found.")
+
+    print("Item not found.")
 
 def sell_item(inventory):
     search_name = input("\nItem being sold: ").strip().capitalize()
+
     for item in inventory:
         if item["name"] == search_name:
+
             if item["stock"] <= 0:
-                print(" Out of stock!")
+                print("Out of stock!")
                 return
-                
+
             quantity = get_valid_num(f"Quantity (Available: {item['stock']}): ", int)
+
             if quantity > item["stock"]:
-                print(f" Not enough stock! Selling remaining {item['stock']} units.")
+                print(f"Not enough stock! Selling remaining {item['stock']} units.")
                 quantity = item["stock"]
-            
+
             item["stock"] -= quantity
             item["sold"] += quantity
+
+            # Record last sale time
+            item["last_sale"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             save_data(inventory)
+
             print(f"Sale recorded: ₱{(quantity * item['price']):.2f}")
             return
-    print(" Item not found.")
+
+    print("Item not found.")
 
 def show_report(inventory):
-    """Feature 5: Formatted Report"""
+    """Formatted inventory report"""
+
     if not inventory:
         print("\n[ Inventory is empty ]")
         return
 
-    print("\n" + "="*65)
-    print(f"{'ITEM NAME':<15} | {'PRICE':<10} | {'SOLD':<6} | {'STOCK':<8} | {'SALES':<10}")
-    print("-" * 65)
-    
+    print("\n" + "="*100)
+    print(f"{'ITEM NAME':<15} | {'CATEGORY':<12} | {'PRICE':<10} | {'SOLD':<6} | {'STOCK':<8} | {'LAST SALE':<20} | {'SALES'}")
+    print("-"*100)
+
     total_revenue = 0
+
     for item in inventory:
         sales = item["sold"] * item["price"]
         total_revenue += sales
-        status = "!" if item["stock"] <= 5 else " "
-        print(f"{item['name']:<15} | ₱{item['price']:<9.2f} | {item['sold']:<6} | {item['stock']:<8}{status} | ₱{sales:<10.2f}")
 
-    print("-" * 65)
+        status = "!" if item["stock"] <= 5 else " "
+
+        print(f"{item['name']:<15} | {item['category']:<12} | ₱{item['price']:<9.2f} | {item['sold']:<6} | {item['stock']:<8}{status} | {item['last_sale']:<20} | ₱{sales:.2f}")
+
+    print("-"*100)
     print(f"GRAND TOTAL REVENUE: ₱{total_revenue:.2f}")
-    print("(=) Note: Items marked with '!' are low on stock.")
-    print("="*65)
+    print("(Note: Items marked with '!' are low on stock.)")
+    print("="*100)
 
 # --- MAIN ENGINE ---
+
 def main():
     inventory = load_data()
-    
+
     while True:
-        print("\n--- MINI STORE V3.0 ---")
+        print("\n--- MINI STORE V4.1.1 ---")
         print("1. Record Sale      4. Restock Item")
         print("2. View Report      5. Delete Item")
         print("3. Add New Item     6. Exit")
-        
+
         choice = input("\nSelect Option: ")
-        
-        if choice == '1': sell_item(inventory)
-        elif choice == '2': show_report(inventory)
-        elif choice == '3': add_item(inventory)
-        elif choice == '4': restock_item(inventory)
-        elif choice == '5': delete_item(inventory)
+
+        if choice == '1':
+            sell_item(inventory)
+
+        elif choice == '2':
+            show_report(inventory)
+
+        elif choice == '3':
+            add_item(inventory)
+
+        elif choice == '4':
+            restock_item(inventory)
+
+        elif choice == '5':
+            delete_item(inventory)
+
         elif choice == '6':
             print("System offline. Have a great day!")
             break
+
         else:
             print("Invalid input.")
 
 if __name__ == "__main__":
     main()
+```
