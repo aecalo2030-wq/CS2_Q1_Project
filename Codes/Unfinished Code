@@ -2,52 +2,76 @@ import tkinter as tk
 from tkinter import messagebox, ttk, simpledialog
 import json
 import os
+import copy
 
 FILE_NAME = "inventory.json"
+TAX_RATE = 0.12  # 12% Sales Tax
 
 class InventoryApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Mini Store Inventory System V4.1")
-        self.root.geometry("800x550")
-       
+        self.root.title("Mini Store Inventory System V4.2.1")
+        self.root.geometry("950x600")
+        
         self.inventory = self.load_data()
+        self.history = []  # Stack for Undo feature
 
         # --- UI ELEMENTS ---
-        tk.Label(root, text="Inventory Dashboard", font=("Arial", 18, "bold")).pack(pady=10)
+        tk.Label(root, text="Store Management Dashboard", font=("Arial", 18, "bold")).pack(pady=10)
 
-        # The Table (Treeview)
-        # We use selectmode="browse" to ensure only one item is picked at a time
-        self.tree = ttk.Treeview(root, columns=("Price", "Sold", "Stock", "Sales"), show="headings", selectmode="browse")
+        # Updated Table Columns
+        columns = ("Original", "Discount", "Net Price", "Sold", "Stock", "Total Sales (+Tax)")
+        self.tree = ttk.Treeview(root, columns=columns, show="headings", selectmode="browse")
+        
         self.tree.heading("#0", text="Item Name")
-        self.tree.heading("Price", text="Price (₱)")
+        self.tree.heading("Original", text="Price (₱)")
+        self.tree.heading("Discount", text="Disc. (₱)")
+        self.tree.heading("Net Price", text="Net (₱)")
         self.tree.heading("Sold", text="Units Sold")
         self.tree.heading("Stock", text="Stock Left")
-        self.tree.heading("Sales", text="Total Sales (₱)")
-       
+        self.tree.heading("Total Sales (+Tax)", text="Total Sales (₱)")
+        
+        # Column formatting
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=110, anchor="center")
         self.tree.column("#0", width=150)
-        self.tree.column("Price", width=100, anchor="center")
-        self.tree.column("Sold", width=80, anchor="center")
-        self.tree.column("Stock", width=80, anchor="center")
-       
+        
         self.tree.pack(fill="both", expand=True, padx=20)
 
-        # Instructions Label
-        tk.Label(root, text="Tip: Select an item from the list above before clicking buttons.", fg="gray").pack()
+        tk.Label(root, text=f"System: {int(TAX_RATE*100)}% Sales Tax applied to all transactions.", fg="blue").pack()
 
-        # Buttons
+        # --- BUTTONS ---
         btn_frame = tk.Frame(root)
         btn_frame.pack(pady=20)
 
-        tk.Button(btn_frame, text="Record Sale", command=self.sell_item, width=15, bg="#e1f5fe", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5)
-        tk.Button(btn_frame, text="Restock Item", command=self.restock_item, width=15, bg="#fffde7", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=5)
-        tk.Button(btn_frame, text="Add New", command=self.add_item_window, width=15, bg="#e8f5e9").grid(row=0, column=2, padx=5)
-        tk.Button(btn_frame, text="Delete", command=self.delete_item, width=15, bg="#ffebee").grid(row=0, column=3, padx=5)
+        # Row 1
+        tk.Button(btn_frame, text="Record Sale", command=self.sell_item, width=15, bg="#e1f5fe", font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=5)
+        tk.Button(btn_frame, text="Apply Discount", command=self.apply_discount, width=15, bg="#f3e5f5", font=("Arial", 10, "bold")).grid(row=0, column=1, padx=5, pady=5)
+        tk.Button(btn_frame, text="Restock Item", command=self.restock_item, width=15, bg="#fffde7").grid(row=0, column=2, padx=5, pady=5)
+        tk.Button(btn_frame, text="Undo Last", command=self.undo, width=15, bg="#eeeeee").grid(row=0, column=3, padx=5, pady=5)
+        
+        # Row 2
+        tk.Button(btn_frame, text="Add New", command=self.add_item_window, width=15, bg="#e8f5e9").grid(row=1, column=1, padx=5)
+        tk.Button(btn_frame, text="Delete Item", command=self.delete_item, width=15, bg="#ffebee").grid(row=1, column=2, padx=5)
 
         self.update_table()
 
     # --- CORE LOGIC ---
-    def save_data(self):
+    def push_undo(self):
+        """Save a snapshot of inventory before changes"""
+        self.history.append(copy.deepcopy(self.inventory))
+        if len(self.history) > 20: self.history.pop(0)
+
+    def undo(self):
+        if not self.history:
+            messagebox.showinfo("Undo", "Nothing to undo!")
+            return
+        self.inventory = self.history.pop()
+        self.save_data(record_history=False)
+        messagebox.showinfo("Undo", "Last action reversed.")
+
+    def save_data(self, record_history=True):
         with open(FILE_NAME, "w") as f:
             json.dump(self.inventory, f, indent=4)
         self.update_table()
@@ -56,89 +80,114 @@ class InventoryApp:
         if os.path.exists(FILE_NAME):
             try:
                 with open(FILE_NAME, "r") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # Ensure all items have a discount key (for backwards compatibility)
+                    for item in data:
+                        if "discount" not in item: item["discount"] = 0.0
+                    return data
             except: return []
         return []
 
     def update_table(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
-       
+        
         for item in self.inventory:
-            sales = item["sold"] * item["price"]
-            # Highlight low stock with a symbol
+            disc = item.get("discount", 0)
+            net = item["price"] - disc
+            # Sales calculation: (Net Price * Sold) + Tax
+            raw_sales = item["sold"] * net
+            total_sales_tax = raw_sales * (1 + TAX_RATE)
+            
             stock_str = f"{item['stock']} ⚠️" if item['stock'] <= 5 else str(item['stock'])
-           
-            # Use 'iid' to set the row ID to the item name for easy lookup
-            self.tree.insert("", "end", iid=item["name"], text=item["name"],
-                             values=(f"₱{item['price']:.2f}", item["sold"], stock_str, f"₱{sales:.2f}"))
+            
+            self.tree.insert("", "end", iid=item["name"], text=item["name"], 
+                             values=(f"₱{item['price']:.2f}", 
+                                     f"₱{disc:.2f}", 
+                                     f"₱{net:.2f}", 
+                                     item["sold"], 
+                                     stock_str, 
+                                     f"₱{total_sales_tax:.2f}"))
 
     # --- ACTION FUNCTIONS ---
-    def sell_item(self):
-        # 1. Get selected item
+    def apply_discount(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("Selection Required", "Please click on an item in the list first!")
+            messagebox.showwarning("Warning", "Select an item to discount!")
             return
-       
-        item_name = selected[0] # The iid we set in update_table
-        item = next((i for i in self.inventory if i["name"] == item_name), None)
-
-        if item:
-            # 2. Ask for quantity
-            qty = simpledialog.askinteger("Record Sale", f"Selling {item_name}\nHow many units?", minvalue=1)
-           
-            if qty is not None:
-                if qty > item["stock"]:
-                    messagebox.showerror("Error", f"Not enough stock! Only {item['stock']} available.")
-                else:
-                    item["stock"] -= qty
-                    item["sold"] += qty
-                    self.save_data()
-                    messagebox.showinfo("Success", f"Sold {qty} units of {item_name}.")
-
-    def restock_item(self):
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("Selection Required", "Please click on an item in the list first!")
-            return
-       
+        
         item_name = selected[0]
         item = next((i for i in self.inventory if i["name"] == item_name), None)
 
         if item:
-            amt = simpledialog.askinteger("Restock", f"Restocking {item_name}\nHow many units to add?", minvalue=1)
+            amount = simpledialog.askfloat("Discount", f"Current Price: ₱{item['price']}\nEnter discount amount (₱):", minvalue=0)
+            if amount is not None:
+                if amount > item["price"]:
+                    messagebox.showerror("Error", "Discount cannot exceed price!")
+                    return
+                self.push_undo()
+                item["discount"] = amount
+                self.save_data()
+
+    def sell_item(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Selection Required", "Please click on an item first!")
+            return
+        
+        item_name = selected[0]
+        item = next((i for i in self.inventory if i["name"] == item_name), None)
+
+        if item:
+            qty = simpledialog.askinteger("Sale", f"Selling {item_name}\nQuantity:", minvalue=1)
+            if qty:
+                if qty > item["stock"]:
+                    messagebox.showerror("Error", "Insufficient stock!")
+                else:
+                    self.push_undo()
+                    item["stock"] -= qty
+                    item["sold"] += qty
+                    
+                    net_price = item["price"] - item.get("discount", 0)
+                    subtotal = net_price * qty
+                    tax = subtotal * TAX_RATE
+                    
+                    self.save_data()
+                    messagebox.showinfo("Receipt", f"Item: {item_name}\nQty: {qty}\nSubtotal: ₱{subtotal:.2f}\nTax: ₱{tax:.2f}\nTotal: ₱{subtotal+tax:.2f}")
+
+    def restock_item(self):
+        selected = self.tree.selection()
+        if not selected: return
+        item_name = selected[0]
+        item = next((i for i in self.inventory if i["name"] == item_name), None)
+        
+        if item:
+            amt = simpledialog.askinteger("Restock", "Quantity to add:", minvalue=1)
             if amt:
+                self.push_undo()
                 item["stock"] += amt
                 self.save_data()
-                messagebox.showinfo("Updated", f"{item_name} stock is now {item['stock']}.")
 
     def delete_item(self):
         selected = self.tree.selection()
         if not selected: return
-       
         item_name = selected[0]
-        if messagebox.askyesno("Confirm Delete", f"Are you sure you want to remove {item_name}?"):
+        if messagebox.askyesno("Confirm", f"Delete {item_name}?"):
+            self.push_undo()
             self.inventory = [i for i in self.inventory if i["name"] != item_name]
             self.save_data()
 
     def add_item_window(self):
-        # This opens a small popup to enter new item details
         win = tk.Toplevel(self.root)
         win.title("Add New Product")
-        win.geometry("300x200")
+        win.geometry("300x250")
 
         tk.Label(win, text="Name:").pack()
-        name_ent = tk.Entry(win)
-        name_ent.pack()
-
+        name_ent = tk.Entry(win); name_ent.pack()
         tk.Label(win, text="Price:").pack()
-        price_ent = tk.Entry(win)
-        price_ent.pack()
-
-        tk.Label(win, text="Stock:").pack()
-        stock_ent = tk.Entry(win)
-        stock_ent.pack()
+        price_ent = tk.Entry(win); price_ent.pack()
+        tk.Label(win, text="Initial Stock:").pack()
+        stock_ent = tk.Entry(win); stock_ent.pack()
 
         def save_new():
             name = name_ent.get().strip().capitalize()
@@ -146,13 +195,14 @@ class InventoryApp:
                 price = float(price_ent.get())
                 stock = int(stock_ent.get())
                 if any(i['name'] == name for i in self.inventory):
-                    messagebox.showerror("Error", "Item already exists!")
+                    messagebox.showerror("Error", "Item exists!")
                     return
-                self.inventory.append({"name": name, "price": price, "stock": stock, "sold": 0})
+                self.push_undo()
+                self.inventory.append({"name": name, "price": price, "discount": 0.0, "stock": stock, "sold": 0})
                 self.save_data()
                 win.destroy()
             except ValueError:
-                messagebox.showerror("Error", "Please enter valid numbers for price/stock.")
+                messagebox.showerror("Error", "Check your numbers!")
 
         tk.Button(win, text="Add Item", command=save_new, bg="#e8f5e9").pack(pady=10)
 
