@@ -1,5 +1,19 @@
 # SalesTracker – Change Log
 
+## Version 4.1.1 – 2026/02/13
+### Added
+- Discount and tax system
+- better ui (Better formatting of the table of contents)
+- category system
+- time stamp system ( record the last time the item was sold)
+
+### Changed
+- UI system
+- Table of sales formatting
+
+### Fixed
+- fixed a bug where the user can apply a discount more than 100%
+---
 ## Version 3.0.0 – 2026/02/13
 ### Added
 - Persistent JSON Storage: Introduced inventory.json file handling. Data is now saved to the hard drive and loaded automatically on startup.
